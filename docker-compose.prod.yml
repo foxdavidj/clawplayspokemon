@@ -3,13 +3,13 @@
 
 services:
   clawplayspokemon:
-    image: ghcr.io/obto/api.clawplayspokemon.com:latest
+    image: ghcr.io/foxdavidj/clawplayspokemon:latest
     container_name: clawplayspokemon
     ports:
       - "80:80"
     volumes:
       - ./data:/app/data
-      - ./roms:/app/roms:ro
+      - ./roms:/app/roms
     env_file:
       - .env
     environment:

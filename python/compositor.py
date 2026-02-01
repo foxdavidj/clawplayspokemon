@@ -364,7 +364,7 @@ class RTMPStreamer:
     # Audio settings
     AUDIO_SAMPLE_RATE = 48000
     AUDIO_CHANNELS = 2
-    AUDIO_BUFFER_MS = 100  # Buffer size in milliseconds
+    AUDIO_BUFFER_MS = 500  # Buffer size in milliseconds (larger = more latency but smoother)
 
     def __init__(self, rtmp_url: str, compositor: StreamCompositor):
         """
@@ -439,8 +439,8 @@ class RTMPStreamer:
             "-video_size", f"{StreamCompositor.WIDTH}x{StreamCompositor.HEIGHT}",
             "-framerate", "30",
             "-i", self.video_pipe_path,
-            # Audio input
-            "-thread_queue_size", "1024",
+            # Audio input - larger queue for network jitter
+            "-thread_queue_size", "4096",
             "-f", "s16le",
             "-ar", "48000",
             "-ac", "2",
@@ -451,9 +451,11 @@ class RTMPStreamer:
             "-tune", "zerolatency",
             "-pix_fmt", "yuv420p",
             "-g", "60",
-            # Audio encoding
+            "-b:v", "2500k",
+            # Audio encoding - larger buffer
             "-c:a", "aac",
-            "-b:a", "128k",
+            "-b:a", "160k",
+            "-af", "aresample=async=1000",
             # Output flags - CRITICAL for RTMP
             "-flags", "+global_header",
             "-max_delay", "0",
@@ -619,9 +621,10 @@ class RTMPStreamer:
             with self._audio_lock:
                 self._audio_buffer = np.concatenate([self._audio_buffer, samples])
 
-                # Prevent buffer from growing too large (keep ~500ms max)
-                max_samples = self.AUDIO_SAMPLE_RATE * self.AUDIO_CHANNELS // 2
+                # Prevent buffer from growing too large (keep ~2 seconds max)
+                max_samples = self.AUDIO_SAMPLE_RATE * self.AUDIO_CHANNELS * 2
                 if len(self._audio_buffer) > max_samples:
+                    # Keep most recent samples
                     self._audio_buffer = self._audio_buffer[-max_samples:]
 
             return True
