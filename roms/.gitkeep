@@ -1,0 +1,3 @@
+# Place your Pokemon ROM here (not included for legal reasons)
+# Expected file: pokemon_blue.gb (or pokemon_red.gb)
+# Set ROM_PATH in .env to configure the path

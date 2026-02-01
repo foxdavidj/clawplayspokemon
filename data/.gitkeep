@@ -1,0 +1,4 @@
+# This directory stores runtime data:
+# - screenshot.png - Current game screenshot for API
+# - pokemon.save - Emulator save state
+# - preview.png - Local preview composite frame (when LOCAL_PREVIEW=true)

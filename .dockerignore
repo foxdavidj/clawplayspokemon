@@ -1,0 +1,69 @@
+# Git
+.git
+.gitignore
+.github/
+
+# Frontend website (not needed in API container)
+www/
+
+# Dependencies (rebuilt in container)
+node_modules
+__pycache__
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# Test and coverage
+coverage/
+.coverage
+htmlcov/
+*.lcov
+.pytest_cache/
+.tox/
+
+# Docker files (avoid recursive issues)
+Dockerfile
+docker-compose*.yml
+
+# Data directory (mounted as volume)
+data/
+roms/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+out/
+*.tgz
+*.tsbuildinfo
+
+# Lock files (bun.lock is needed, but being explicit)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
