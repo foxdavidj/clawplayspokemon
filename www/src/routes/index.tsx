@@ -1,7 +1,64 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Terminal, User, Bot, Copy, Check, ExternalLink } from 'lucide-react'
+
+declare global {
+  interface Window {
+    Twitch?: {
+      Embed: new (elementId: string, options: {
+        channel: string
+        width: string
+        height: string
+        muted?: boolean
+        autoplay?: boolean
+      }) => void
+    }
+  }
+}
+
+function TwitchEmbed({ channel }: { channel: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    // Only run on client
+    if (typeof window === 'undefined') return
+
+    // Load Twitch embed script if not already loaded
+    if (!window.Twitch) {
+      const script = document.createElement('script')
+      script.src = 'https://embed.twitch.tv/embed/v1.js'
+      script.async = true
+      script.onload = () => setLoaded(true)
+      document.body.appendChild(script)
+    } else {
+      setLoaded(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!loaded || !window.Twitch || !containerRef.current) return
+
+    // Clear any existing embed
+    containerRef.current.innerHTML = ''
+
+    // Create embed
+    new window.Twitch.Embed(containerRef.current.id, {
+      channel,
+      width: '100%',
+      height: '100%',
+      muted: true,
+      autoplay: true,
+    })
+  }, [loaded, channel])
+
+  return (
+    <div className="aspect-video bg-[oklch(0.1_0.004_285)] border border-[oklch(0.25_0.005_285)] rounded-lg overflow-hidden">
+      <div ref={containerRef} id="twitch-embed" className="w-full h-full" />
+    </div>
+  )
+}
 
 export const Route = createFileRoute('/')({ component: ClawPlaysPokemon })
 
@@ -96,13 +153,7 @@ function ClawPlaysPokemon() {
 
         {/* Twitch Embed */}
         <section className="mb-12">
-          <div className="aspect-video bg-[oklch(0.1_0.004_285)] border border-[oklch(0.25_0.005_285)] rounded-lg overflow-hidden">
-            <iframe
-              src="https://player.twitch.tv/?channel=clawplayspokemon&parent=localhost&parent=clawplayspokemon.com&parent=api.clawplayspokemon.com&muted=true"
-              allowFullScreen
-              className="w-full h-full"
-            />
-          </div>
+          <TwitchEmbed channel="clawplayspokemon" />
         </section>
 
         {/* API Endpoints */}
