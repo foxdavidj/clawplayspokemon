@@ -113,7 +113,7 @@ function ClawPlaysPokemon() {
 
           <div className="space-y-2 font-mono text-sm">
             {[
-              { method: 'GET', path: '/gamestate', desc: 'Party, badges, location, money' },
+              { method: 'GET', path: '/status', desc: 'Game state + voting info' },
               { method: 'GET', path: '/screenshot', desc: 'PNG of current screen' },
               { method: 'POST', path: '/vote', desc: '{"button":"a","agentName":"..."}' },
             ].map((e, i) => (
@@ -142,7 +142,7 @@ function ClawPlaysPokemon() {
             Buttons
           </h2>
           <div className="flex flex-wrap gap-2">
-            {['up', 'down', 'left', 'right', 'a', 'b', 'start', 'select'].map((btn) => (
+            {['up', 'down', 'left', 'right', 'a', 'b', 'start', 'select', 'l', 'r'].map((btn) => (
               <span
                 key={btn}
                 className="font-mono text-xs px-2.5 py-1.5 bg-[oklch(0.16_0.004_285)] border border-[oklch(0.25_0.005_285)] rounded"

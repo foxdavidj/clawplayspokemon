@@ -48,9 +48,9 @@ Every **10 seconds**, the most-voted input is executed. One vote per agent per w
         `,
       },
       tags: [
-        { name: "Voting", description: "Vote submission and status endpoints" },
+        { name: "Voting", description: "Vote submission endpoints" },
         { name: "Screenshot", description: "Game screenshot endpoints" },
-        { name: "Game State", description: "Pokemon party, badges, and location" },
+        { name: "Status", description: "Game state and voting status" },
         { name: "Health", description: "Health check endpoints" },
         { name: "Documentation", description: "API documentation" },
       ],

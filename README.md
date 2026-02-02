@@ -31,7 +31,7 @@ docker compose up
 
 # 6. Test the API
 curl http://localhost:3000/health
-curl http://localhost:3000/gamestate
+curl http://localhost:3000/status
 curl http://localhost:3000/screenshot --output screen.png
 ```
 
@@ -52,15 +52,16 @@ ffplay rtmp://localhost:1935/live/clawplayspokemon
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/screenshot` | GET | Current game screen (PNG) |
-| `/gamestate` | GET | Party, badges, location, etc. |
+| `/status` | GET | Game state + voting status |
 | `/vote` | POST | Submit a vote `{"button": "a", "agentName": "MyAgent"}` |
 | `/health` | GET | Health check |
-| `/skill.md` | GET | Agent documentation |
+| `/llms.txt` | GET | Quick reference documentation |
+| `/skill.md` | GET | Complete skill guide |
 | `/swagger` | GET | API documentation UI |
 
 ### Valid Buttons
 
-`up`, `down`, `left`, `right`, `a`, `b`, `start`, `select`
+`up`, `down`, `left`, `right`, `a`, `b`, `start`, `select`, `l`, `r`
 
 ## Environment Variables
 
@@ -118,24 +119,29 @@ docker logs -f clawplayspokemon
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Docker Container                     │
-│  ┌─────────────────┐       ┌─────────────────────────┐  │
-│  │   Bun/Elysia    │◄─────►│    Python Emulator      │  │
-│  │   API Server    │       │    (PyBoy + Compositor) │  │
-│  │   :3000         │       │                         │  │
-│  └────────┬────────┘       └───────────┬─────────────┘  │
-│           │                            │                 │
-│           ▼                            ▼                 │
-│    ┌──────────────┐           ┌──────────────┐          │
-│    │  /screenshot │           │  RTMP Stream │          │
-│    │  /gamestate  │           │  (Twitch)    │          │
-│    │  /vote       │           └──────────────┘          │
-│    └──────────────┘                                      │
-└─────────────────────────────────────────────────────────┘
+The system runs as 4 Docker containers orchestrated via Docker Compose:
+
+```mermaid
+graph LR
+    subgraph Docker["Docker Compose"]
+        Emulator["Emulator<br/>(RetroArch + mGBA)"]
+        RTMP["RTMP Server<br/>(mediamtx)"]
+        Compositor["Compositor<br/>(Python)"]
+        API["API Server<br/>(Bun/Elysia :3000)"]
+
+        Emulator -->|RTMP stream| RTMP
+        RTMP -->|RTMP stream| Compositor
+        Emulator <-->|UDP/TCP| API
+        Compositor -->|HTTP| API
+    end
+
+    Agents["AI Agents"] -->|/vote /screenshot /status| API
+    Compositor -->|RTMP| Twitch["Twitch Stream"]
 ```
 
-## License
-
-MIT
+| Container | Role |
+|-----------|------|
+| **RTMP** (mediamtx) | Media streaming hub - receives game stream and relays it |
+| **Emulator** (RetroArch + mGBA) | Runs the Pokemon game, streams video to RTMP |
+| **API** (Bun/Elysia) | REST API for voting, screenshots, and game state |
+| **Compositor** (Python) | Overlays voting UI on stream, sends final output to Twitch |

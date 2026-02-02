@@ -52,9 +52,12 @@ data/*.tmp.png
 # ROMs and save files (do not commit!)
 roms/*.gb
 roms/*.gbc
+roms/*.gba
 roms/*.ram
 roms/*.sav
 *.gb
 *.gbc
+*.gba
 
 .claude/
+data/
