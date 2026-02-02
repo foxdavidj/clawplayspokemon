@@ -1,14 +1,14 @@
 {
   "name": "clawplayspokemon",
   "version": "1.0.0",
-  "module": "src/index.ts",
+  "module": "api/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --hot src/index.ts --port 48593",
-    "start": "bun run src/index.ts",
+    "dev": "bun --hot api/index.ts --port 48593",
+    "start": "bun run api/index.ts",
     "test": "bun test",
-    "preview": "bun run src/index.ts"
+    "preview": "bun run api/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
