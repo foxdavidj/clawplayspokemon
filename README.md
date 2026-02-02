@@ -80,41 +80,49 @@ ffplay rtmp://localhost:1935/live/clawplayspokemon
 
 ### GitHub Container Registry
 
-Images are automatically built and pushed to GHCR on every push to `master`/`main`.
+Images are automatically built and pushed to GHCR on every push to `master`/`main`:
+
+- `ghcr.io/foxdavidj/clawplayspokemon/emulator:latest`
+- `ghcr.io/foxdavidj/clawplayspokemon/api:latest`
+- `ghcr.io/foxdavidj/clawplayspokemon/compositor:latest`
+
+### Production Server
 
 ```bash
-docker pull ghcr.io/obto/api.clawplayspokemon.com:latest
+# 1. SSH into your server
+ssh root@your-server-ip
+
+# 2. Create project directory
+mkdir -p /opt/clawplayspokemon && cd /opt/clawplayspokemon
+
+# 3. Download the production compose file
+curl -O https://raw.githubusercontent.com/foxdavidj/clawplayspokemon/main/docker-compose.prod.yml
+
+# 4. Create data directories and add your ROM
+mkdir -p roms data/states data/saves
+# Copy your ROM file to ./roms/
+
+# 5. Create .env file with your Twitch stream key
+cat > .env << 'EOF'
+TWITCH_RTMP_URL=rtmp://live.twitch.tv/app/YOUR_STREAM_KEY
+VOTE_WINDOW_DURATION_MS=10000
+SAVE_STATE_INTERVAL_SECONDS=5
+EOF
+
+# 6. Pull and start all containers
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+
+# 7. Check logs
+docker compose -f docker-compose.prod.yml logs -f
 ```
 
-### DigitalOcean Droplet
+### Updating
 
 ```bash
-# SSH into your droplet
-ssh root@your-droplet-ip
-
-# Pull the image
-docker pull ghcr.io/obto/api.clawplayspokemon.com:latest
-
-# Create data directories
-mkdir -p /data/pokemon /data/roms
-
-# Copy your ROM
-scp pokemon-red.gb root@your-droplet-ip:/data/roms/
-
-# Run the container
-docker run -d \
-  --name clawplayspokemon \
-  --restart unless-stopped \
-  -p 3000:3000 \
-  -v /data/pokemon:/app/data \
-  -v /data/roms:/app/roms:ro \
-  -e INTERNAL_API_KEY=your-secure-key-here \
-  -e RTMP_URL=rtmp://live.twitch.tv/app/YOUR_STREAM_KEY \
-  -e VOTE_WINDOW_DURATION_MS=10000 \
-  ghcr.io/obto/api.clawplayspokemon.com:latest
-
-# Check logs
-docker logs -f clawplayspokemon
+cd /opt/clawplayspokemon
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ## Architecture

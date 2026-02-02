@@ -1,0 +1,56 @@
+services:
+  rtmp:
+    image: bluenviron/mediamtx:latest
+    restart: unless-stopped
+
+  emulator:
+    image: ghcr.io/foxdavidj/clawplayspokemon/emulator:latest
+    platform: linux/amd64
+    depends_on:
+      - rtmp
+    restart: unless-stopped
+    environment:
+      - DISPLAY=:99
+      - SDL_VIDEODRIVER=x11
+      - SDL_AUDIODRIVER=dummy
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - RTMP_URL=rtmp://rtmp:1935/live/stream
+      - SAVE_STATE_INTERVAL_SECONDS=${SAVE_STATE_INTERVAL_SECONDS:-5}
+    volumes:
+      - ./roms:/roms:ro
+      - ./data/states:/data/states
+      - ./data/saves:/data/saves
+
+  api:
+    image: ghcr.io/foxdavidj/clawplayspokemon/api:latest
+    depends_on:
+      - rtmp
+      - emulator
+    restart: unless-stopped
+    environment:
+      - API_PORT=3000
+      - EMULATOR_HOST=emulator
+      - EMULATOR_MEMORY_PORT=55355
+      - EMULATOR_INPUT_PORT=55400
+      - RTMP_URL=rtmp://rtmp:1935/live/stream
+      - SCREENSHOT_FETCH_INTERVAL_MS=5000
+      - GAMESTATE_FETCH_INTERVAL_MS=3000
+      - VOTE_WINDOW_DURATION_MS=${VOTE_WINDOW_DURATION_MS:-10000}
+      - EXECUTION_COOLDOWN_MS=${EXECUTION_COOLDOWN_MS:-5000}
+      - UDP_TIMEOUT_MS=2000
+      - UDP_RETRIES=3
+    ports:
+      - "80:3000"
+
+  compositor:
+    image: ghcr.io/foxdavidj/clawplayspokemon/compositor:latest
+    depends_on:
+      - rtmp
+      - emulator
+      - api
+    restart: unless-stopped
+    environment:
+      - API_URL=http://api:3000
+      - INPUT_RTMP_URL=rtmp://rtmp:1935/live/stream
+      - OUTPUT_RTMP_URL=${TWITCH_RTMP_URL}
+      - STATUS_POLL_INTERVAL_MS=100
