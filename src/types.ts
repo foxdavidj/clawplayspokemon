@@ -2,8 +2,8 @@
  * TypeScript type definitions for the Claw Plays Pokemon voting system.
  */
 
-// Valid button inputs for Pokemon gameplay
-export const VALID_BUTTONS = ["up", "down", "left", "right", "a", "b", "start", "select"] as const;
+// Valid button inputs for Pokemon gameplay (including L/R for GBA)
+export const VALID_BUTTONS = ["up", "down", "left", "right", "a", "b", "start", "select", "l", "r"] as const;
 export type Button = typeof VALID_BUTTONS[number];
 
 /**
@@ -130,5 +130,63 @@ export interface VotersResponse {
  */
 export interface HealthResponse {
   status: "ok";
+  timestamp: number;
+}
+
+/**
+ * A Pokemon in the player's party.
+ */
+export interface PokemonPartyMember {
+  /** Party slot (1-6) */
+  slot: number;
+  /** Species name */
+  species: string;
+  /** National Pokedex ID */
+  species_id: number;
+  /** Pokemon's nickname */
+  nickname: string;
+  /** Current level */
+  level: number;
+  /** Current HP */
+  hp: number;
+  /** Maximum HP */
+  max_hp: number;
+  /** Status condition (OK, Sleep, Poison, etc.) */
+  status: string;
+  /** Learned moves with PP */
+  moves: Array<{ name: string; pp: number }>;
+}
+
+/**
+ * Complete game state read from emulator memory.
+ */
+export interface GameState {
+  /** Player's name */
+  player: string;
+  /** Badge information */
+  badges: {
+    /** Number of badges earned */
+    count: number;
+    /** Individual badge status */
+    badges: Record<string, boolean>;
+  };
+  /** Pokemon in the player's party */
+  party: PokemonPartyMember[];
+  /** Current location */
+  location: {
+    /** Map ID (bank << 8 | number) */
+    map_id: number;
+    /** Location name */
+    name: string;
+  };
+  /** Money in bag */
+  money: number;
+  /** Play time */
+  play_time: {
+    hours: number;
+    minutes: number;
+    seconds: number;
+  };
+  /** Unix timestamp when this state was read */
   timestamp: number;
 }

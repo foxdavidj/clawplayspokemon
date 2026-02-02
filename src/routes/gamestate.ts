@@ -1,113 +1,43 @@
 /**
- * Game state routes.
+ * Status route - combines game state and voting information.
  *
- * - POST /internal/gamestate - Protected endpoint for emulator to push state
- * - GET /gamestate - Public endpoint for agents to read state
+ * GET /status - Public endpoint for agents to read game state and voting status
  */
 
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
+import {
+  getGameState,
+  getCurrentWindow,
+  getPreviousResults,
+  tallyVotes,
+} from "../state";
 
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || "changeme";
+export const gameStateRoutes = new Elysia({ name: "status" })
+  // Combined status endpoint with game state and voting info
+  .get("/status", ({ set }) => {
+    const gameState = getGameState();
+    const currentWindow = getCurrentWindow();
+    const now = Date.now();
+    const timeRemaining = Math.max(0, currentWindow.endTime - now);
+    const tallies = tallyVotes(currentWindow);
 
-// In-memory game state (updated by Python emulator)
-let currentGameState: GameState | null = null;
-
-interface GameState {
-  player: string;
-  badges: {
-    count: number;
-    badges: Record<string, boolean>;
-  };
-  party: Array<{
-    slot: number;
-    species: string;
-    species_id: number;
-    nickname: string;
-    level: number;
-    hp: number;
-    max_hp: number;
-    status: string;
-    moves: Array<{
-      name: string;
-      pp: number;
-    }>;
-  }>;
-  location: {
-    map_id: number;
-    name: string;
-  };
-  money: number;
-  play_time: {
-    hours: number;
-    minutes: number;
-    seconds: number;
-  };
-  timestamp: number;
-}
-
-export const gameStateRoutes = new Elysia({ name: "gamestate" })
-  // Internal endpoint for emulator to push state (protected)
-  .post("/internal/gamestate", ({ body, request, set }) => {
-    const authHeader = request.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-
-    if (token !== INTERNAL_API_KEY) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
-    currentGameState = body as GameState;
-    return { success: true };
-  }, {
-    body: t.Object({
-      player: t.String(),
-      badges: t.Object({
-        count: t.Number(),
-        badges: t.Record(t.String(), t.Boolean())
-      }),
-      party: t.Array(t.Object({
-        slot: t.Number(),
-        species: t.String(),
-        species_id: t.Number(),
-        nickname: t.String(),
-        level: t.Number(),
-        hp: t.Number(),
-        max_hp: t.Number(),
-        status: t.String(),
-        moves: t.Array(t.Object({
-          name: t.String(),
-          pp: t.Number()
-        }))
-      })),
-      location: t.Object({
-        map_id: t.Number(),
-        name: t.String()
-      }),
-      money: t.Number(),
-      play_time: t.Object({
-        hours: t.Number(),
-        minutes: t.Number(),
-        seconds: t.Number()
-      }),
-      timestamp: t.Number()
-    }),
-    detail: {
-      hide: true  // Hide from swagger
-    }
-  })
-
-  // Public endpoint for agents to read state
-  .get("/gamestate", ({ set }) => {
-    if (!currentGameState) {
-      set.status = 503;
-      return { error: "Game state not available yet" };
-    }
-
-    return currentGameState;
+    return {
+      game: gameState,
+      voting: {
+        windowId: currentWindow.windowId,
+        timeRemainingMs: timeRemaining,
+        timeRemainingSeconds: Math.ceil(timeRemaining / 1000),
+        totalVotes: currentWindow.votes.size,
+        tallies: tallies.filter((t) => t.count > 0),
+        allTallies: tallies,
+      },
+      previousResult: getPreviousResults(),
+      serverTime: now,
+    };
   }, {
     detail: {
-      tags: ["Game State"],
-      summary: "Get current game state",
-      description: "Returns the current Pokemon party, badges, location, and other game information. Updated every 5 seconds.",
-    }
+      tags: ["Status"],
+      summary: "Get game state and voting status",
+      description: "Returns the current Pokemon game state (party, badges, location) and voting window information. Game state is read from emulator RAM every 3 seconds.",
+    },
   });

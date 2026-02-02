@@ -20,3 +20,22 @@ services:
     ports:
       - "55355:55355/udp"
       - "55400:55400/udp"
+
+  api:
+    build: .
+    depends_on:
+      - rtmp
+      - emulator
+    environment:
+      - API_PORT=3000
+      - EMULATOR_HOST=emulator
+      - EMULATOR_MEMORY_PORT=55355
+      - EMULATOR_INPUT_PORT=55400
+      - RTMP_URL=rtmp://rtmp:1935/live/stream
+      - SCREENSHOT_FETCH_INTERVAL_MS=5000
+      - GAMESTATE_FETCH_INTERVAL_MS=3000
+      - VOTE_WINDOW_DURATION_MS=10000
+      - UDP_TIMEOUT_MS=2000
+      - UDP_RETRIES=3
+    ports:
+      - "3000:3000"

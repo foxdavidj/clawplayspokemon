@@ -1,16 +1,22 @@
 /**
  * Shared state management for the Claw Plays Pokemon voting system.
  *
- * This module contains all the voting window state and screenshot state
- * that is shared across route handlers.
+ * This module contains:
+ * - Voting window state and management
+ * - Screenshot state (fetched from RTMP stream)
+ * - Game state (fetched from emulator RAM via UDP)
  */
 
-import type { VotingWindow, Vote, VoteTally, ExecutionResult, Button } from "./types";
+import type { VotingWindow, Vote, VoteTally, ExecutionResult, Button, GameState } from "./types";
 import { VALID_BUTTONS } from "./types";
+import { pressButton } from "./services/emulator";
+import { fetchGameState } from "./services/gamestate";
+import { captureScreenshot } from "./services/screenshot";
 
 // Configuration
 const WINDOW_DURATION_MS = parseInt(process.env.VOTE_WINDOW_DURATION_MS || "10000", 10);
-const SCREENSHOT_PATH = process.env.SCREENSHOT_PATH || "./data/screenshot.png";
+const SCREENSHOT_FETCH_INTERVAL_MS = parseInt(process.env.SCREENSHOT_FETCH_INTERVAL_MS || "5000", 10);
+const GAMESTATE_FETCH_INTERVAL_MS = parseInt(process.env.GAMESTATE_FETCH_INTERVAL_MS || "3000", 10);
 
 // ============================================================================
 // Voting State
@@ -67,13 +73,17 @@ export function tallyVotes(window: VotingWindow): VoteTally[] {
 
 export function executeWindow(window: VotingWindow): ExecutionResult {
   const tallies = tallyVotes(window);
-  const topVotes = tallies.filter((t) => t.count === tallies[0].count && t.count > 0);
+  const maxVotes = tallies[0]?.count ?? 0;
+  const topVotes = tallies.filter((t) => t.count === maxVotes && t.count > 0);
 
   let winner: Button | null = null;
   if (topVotes.length > 0) {
     // Random tiebreaker
-    winner = topVotes[Math.floor(Math.random() * topVotes.length)].button;
-    console.log(`Executing button: ${winner}`);
+    const randomIndex = Math.floor(Math.random() * topVotes.length);
+    winner = topVotes[randomIndex]?.button ?? null;
+    if (winner) {
+      console.log(`Executing button: ${winner}`);
+    }
   }
 
   return {
@@ -92,12 +102,22 @@ export function addVote(ip: string, vote: Vote): { isChange: boolean; existingVo
   return { isChange, existingVote };
 }
 
-// Window management loop
-setInterval(() => {
+// Window management loop - executes winning button and sends to emulator
+setInterval(async () => {
   const now = Date.now();
   if (now >= currentWindow.endTime && !currentWindow.executed) {
     currentWindow.executed = true;
     previousResults = executeWindow(currentWindow);
+
+    // Send winning button to emulator via UDP
+    if (previousResults.winner) {
+      try {
+        await pressButton(previousResults.winner);
+      } catch (err) {
+        console.error("Failed to send button to emulator:", err);
+      }
+    }
+
     currentWindow = createNewWindow();
     console.log(
       `Window ${previousResults.windowId} executed: ${previousResults.winner || "no votes"}`
@@ -106,7 +126,7 @@ setInterval(() => {
 }, 100);
 
 // ============================================================================
-// Screenshot State
+// Screenshot State (fetched from RTMP stream via ffmpeg)
 // ============================================================================
 
 let currentScreenshot: Buffer | null = null;
@@ -121,26 +141,48 @@ export function getScreenshotState() {
   };
 }
 
-// Load screenshot from filesystem
-async function loadScreenshot(): Promise<void> {
+// Screenshot polling loop - capture from RTMP stream
+async function updateScreenshot(): Promise<void> {
   try {
-    const file = Bun.file(SCREENSHOT_PATH);
-    if (await file.exists()) {
-      const stat = await file.stat();
-      // Only reload if file was modified
-      if (stat.mtime.getTime() !== screenshotLastModified) {
-        currentScreenshot = Buffer.from(await file.arrayBuffer());
-        screenshotLastModified = stat.mtime.getTime();
-        screenshotEtag = `${stat.mtime.getTime()}-${stat.size}`;
-      }
+    const screenshot = await captureScreenshot();
+    if (screenshot) {
+      currentScreenshot = screenshot;
+      screenshotLastModified = Date.now();
+      screenshotEtag = `${screenshotLastModified}-${screenshot.length}`;
     }
-  } catch {
-    // File might not exist yet during startup
+  } catch (err) {
+    console.error("Failed to capture screenshot:", err);
   }
 }
 
-// Screenshot update loop - reload from disk every second
-setInterval(loadScreenshot, 1000);
+setInterval(updateScreenshot, SCREENSHOT_FETCH_INTERVAL_MS);
 
-// Initial screenshot load
-loadScreenshot();
+// Initial screenshot capture (delayed to allow emulator to start)
+setTimeout(updateScreenshot, 5000);
+
+// ============================================================================
+// Game State (fetched from emulator RAM via UDP)
+// ============================================================================
+
+let currentGameState: GameState | null = null;
+
+export function getGameState(): GameState | null {
+  return currentGameState;
+}
+
+// Game state polling loop - read from emulator memory
+async function updateGameState(): Promise<void> {
+  try {
+    const state = await fetchGameState();
+    if (state) {
+      currentGameState = state;
+    }
+  } catch (err) {
+    console.error("Failed to fetch game state:", err);
+  }
+}
+
+setInterval(updateGameState, GAMESTATE_FETCH_INTERVAL_MS);
+
+// Initial game state fetch (delayed to allow emulator to start)
+setTimeout(updateGameState, 5000);

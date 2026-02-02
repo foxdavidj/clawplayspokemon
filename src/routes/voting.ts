@@ -6,47 +6,11 @@ import { Elysia, t } from "elysia";
 import { VALID_BUTTONS, type Button } from "../types";
 import {
   getCurrentWindow,
-  getPreviousResults,
   tallyVotes,
   addVote,
 } from "../state";
 
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || "changeme";
-
 export const votingRoutes = new Elysia({ name: "voting" })
-  // Internal status endpoint (protected)
-  .get("/status", ({ request, set }) => {
-    const authHeader = request.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-
-    if (token !== INTERNAL_API_KEY) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
-    const currentWindow = getCurrentWindow();
-    const now = Date.now();
-    const timeRemaining = Math.max(0, currentWindow.endTime - now);
-    const tallies = tallyVotes(currentWindow);
-
-    return {
-      currentWindow: {
-        windowId: currentWindow.windowId,
-        timeRemainingMs: timeRemaining,
-        timeRemainingSeconds: Math.ceil(timeRemaining / 1000),
-        totalVotes: currentWindow.votes.size,
-        tallies: tallies.filter((t) => t.count > 0),
-        allTallies: tallies,
-      },
-      previousResult: getPreviousResults(),
-      serverTime: now,
-    };
-  }, {
-    detail: {
-      hide: true  // Hide from swagger
-    },
-  })
-
   // Vote submission
   .post("/vote", ({ body, request }) => {
     const currentWindow = getCurrentWindow();
@@ -74,7 +38,8 @@ export const votingRoutes = new Elysia({ name: "voting" })
     });
 
     const tallies = tallyVotes(currentWindow);
-    const myButtonTally = tallies.find((t) => t.button === button)!;
+    const myButtonTally = tallies.find((t) => t.button === button);
+    const leadingTally = tallies[0];
 
     return {
       success: true,
@@ -85,14 +50,14 @@ export const votingRoutes = new Elysia({ name: "voting" })
       windowId: currentWindow.windowId,
       timeRemainingMs: currentWindow.endTime - Date.now(),
       yourButtonRank: tallies.findIndex((t) => t.button === button) + 1,
-      yourButtonVotes: myButtonTally.count,
-      leadingButton: tallies[0].button,
-      leadingVotes: tallies[0].count,
+      yourButtonVotes: myButtonTally?.count ?? 0,
+      leadingButton: leadingTally?.button ?? button,
+      leadingVotes: leadingTally?.count ?? 0,
     };
   }, {
     body: t.Object({
       button: t.String({
-        description: "Button to vote for: up, down, left, right, a, b, start, select"
+        description: "Button to vote for: up, down, left, right, a, b, start, select, l, r"
       }),
       agentName: t.Optional(t.String({
         maxLength: 20,
