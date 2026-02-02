@@ -48,28 +48,25 @@ export function getPreviousResults(): ExecutionResult | null {
 }
 
 export function tallyVotes(window: VotingWindow): VoteTally[] {
-  const counts = new Map<Button, { count: number; voters: string[] }>();
+  const counts = new Map<Button, number>();
 
   // Initialize all buttons
   for (const btn of VALID_BUTTONS) {
-    counts.set(btn, { count: 0, voters: [] });
+    counts.set(btn, 0);
   }
 
   // Count votes
   for (const vote of window.votes.values()) {
-    const tally = counts.get(vote.button)!;
-    tally.count++;
-    tally.voters.push(vote.agentName);
+    counts.set(vote.button, counts.get(vote.button)! + 1);
   }
 
   // Convert to sorted array
   const totalVotes = window.votes.size || 1;
   return Array.from(counts.entries())
-    .map(([button, { count, voters }]) => ({
+    .map(([button, count]) => ({
       button,
       count,
       percentage: Math.round((count / totalVotes) * 100),
-      voters,
     }))
     .sort((a, b) => b.count - a.count);
 }
