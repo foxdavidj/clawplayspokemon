@@ -60,3 +60,4 @@ roms/*.sav
 *.gba
 
 .claude/
+data/

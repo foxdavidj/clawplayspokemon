@@ -85,7 +85,7 @@ echo "Starting periodic save state (every ${SAVE_INTERVAL}s)..."
 (
     sleep 10  # Give RetroArch time to boot and load ROM
     while true; do
-        echo -n "SAVE_STATE" | nc -u -w1 localhost 55355 2>/dev/null || true
+        echo -n "SAVE_STATE" | nc -u -w1 127.0.0.1 55355 2>/dev/null || true
         sleep $SAVE_INTERVAL
     done
 ) &
@@ -100,7 +100,7 @@ echo "  Core:   $CORE"
 echo "  ROM:    $ROM_PATH"
 echo "  Stream: $RTMP_URL"
 echo ""
-echo "Watch with: mpv rtmp://localhost:1935/live/stream"
+echo "Watch with: mpv rtmp://127.0.0.1:1935/live/stream"
 echo ""
 
 exec retroarch \
