@@ -35,7 +35,21 @@ services:
       - SCREENSHOT_FETCH_INTERVAL_MS=5000
       - GAMESTATE_FETCH_INTERVAL_MS=3000
       - VOTE_WINDOW_DURATION_MS=10000
+      - EXECUTION_COOLDOWN_MS=5000
       - UDP_TIMEOUT_MS=2000
       - UDP_RETRIES=3
     ports:
       - "3000:3000"
+
+  compositor:
+    build: ./compositor
+    depends_on:
+      - rtmp
+      - emulator
+      - api
+    environment:
+      - API_URL=http://api:3000
+      - INPUT_RTMP_URL=rtmp://rtmp:1935/live/stream
+      - OUTPUT_RTMP_URL=${TWITCH_RTMP_URL:-}
+      - STATUS_POLL_INTERVAL_MS=100
+    restart: unless-stopped

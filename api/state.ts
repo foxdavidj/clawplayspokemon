@@ -15,6 +15,7 @@ import { captureScreenshot } from "./services/screenshot";
 
 // Configuration
 const WINDOW_DURATION_MS = parseInt(process.env.VOTE_WINDOW_DURATION_MS || "10000", 10);
+const EXECUTION_COOLDOWN_MS = parseInt(process.env.EXECUTION_COOLDOWN_MS || "3000", 10);
 const SCREENSHOT_FETCH_INTERVAL_MS = parseInt(process.env.SCREENSHOT_FETCH_INTERVAL_MS || "5000", 10);
 const GAMESTATE_FETCH_INTERVAL_MS = parseInt(process.env.GAMESTATE_FETCH_INTERVAL_MS || "3000", 10);
 
@@ -24,6 +25,8 @@ const GAMESTATE_FETCH_INTERVAL_MS = parseInt(process.env.GAMESTATE_FETCH_INTERVA
 
 let currentWindow: VotingWindow = createNewWindow();
 let previousResults: ExecutionResult | null = null;
+let inCooldown: boolean = false;
+let cooldownEndsAt: number = 0;
 
 export function createNewWindow(): VotingWindow {
   const now = Date.now();
@@ -95,21 +98,44 @@ export function executeWindow(window: VotingWindow): ExecutionResult {
   };
 }
 
-export function addVote(ip: string, vote: Vote): { isChange: boolean; existingVote?: Vote } {
+export function isInCooldown(): boolean {
+  return inCooldown;
+}
+
+export function getCooldownRemaining(): number {
+  if (!inCooldown) return 0;
+  return Math.max(0, cooldownEndsAt - Date.now());
+}
+
+export function addVote(ip: string, vote: Vote): { isChange: boolean; existingVote?: Vote; rejected?: boolean } {
+  // Reject votes during cooldown
+  if (inCooldown) {
+    return { isChange: false, rejected: true };
+  }
+
   const existingVote = currentWindow.votes.get(ip);
   const isChange = existingVote !== undefined;
   currentWindow.votes.set(ip, vote);
-  return { isChange, existingVote };
+  return { isChange, existingVote, rejected: false };
 }
 
 // Window management loop - executes winning button and sends to emulator
 setInterval(async () => {
   const now = Date.now();
-  if (now >= currentWindow.endTime && !currentWindow.executed) {
+
+  // Check if cooldown period has ended
+  if (inCooldown && now >= cooldownEndsAt) {
+    inCooldown = false;
+    currentWindow = createNewWindow();
+    console.log("Cooldown ended, new voting window started");
+  }
+
+  // Check if voting window has ended (and not already executed)
+  if (!inCooldown && now >= currentWindow.endTime && !currentWindow.executed) {
     currentWindow.executed = true;
     previousResults = executeWindow(currentWindow);
 
-    // Send winning button to emulator via UDP
+    // Send winning button to emulator
     if (previousResults.winner) {
       try {
         await pressButton(previousResults.winner);
@@ -118,9 +144,11 @@ setInterval(async () => {
       }
     }
 
-    currentWindow = createNewWindow();
+    // Enter cooldown period
+    inCooldown = true;
+    cooldownEndsAt = now + EXECUTION_COOLDOWN_MS;
     console.log(
-      `Window ${previousResults.windowId} executed: ${previousResults.winner || "no votes"}`
+      `Window ${previousResults.windowId} executed: ${previousResults.winner || "no votes"} (cooldown ${EXECUTION_COOLDOWN_MS}ms)`
     );
   }
 }, 100);

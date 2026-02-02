@@ -8,6 +8,8 @@ import {
   getCurrentWindow,
   tallyVotes,
   addVote,
+  isInCooldown,
+  getCooldownRemaining,
 } from "../state";
 
 export const votingRoutes = new Elysia({ name: "voting" })
@@ -30,12 +32,22 @@ export const votingRoutes = new Elysia({ name: "voting" })
       request.headers.get("x-real-ip") ||
       "unknown";
 
-    const { isChange, existingVote } = addVote(ip, {
+    const { isChange, existingVote, rejected } = addVote(ip, {
       button,
       agentName: agentName.replace(/[<>&"']/g, ""), // Sanitize for display
       timestamp: Date.now(),
       ip,
     });
+
+    // Vote was rejected during cooldown
+    if (rejected) {
+      return {
+        success: false,
+        error: "cooldown",
+        message: "Voting is paused while the previous action executes",
+        cooldownRemainingMs: getCooldownRemaining(),
+      };
+    }
 
     const tallies = tallyVotes(currentWindow);
     const myButtonTally = tallies.find((t) => t.button === button);
@@ -76,7 +88,7 @@ export const votingRoutes = new Elysia({ name: "voting" })
     const currentWindow = getCurrentWindow();
     const recentVoters = Array.from(currentWindow.votes.values())
       .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 20)
+      .slice(0, 10)
       .map((v) => ({
         agentName: v.agentName,
         button: v.button,
