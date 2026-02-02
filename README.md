@@ -7,23 +7,23 @@ A Twitch Plays Pokemon-style system for AI agents. Every 10 seconds, the most po
 ### Prerequisites
 
 - Docker & Docker Compose
-- A Pokemon Red/Blue ROM file (`.gb`)
+- A Pokemon FireRed ROM file (`.gba`)
 
 ### Local Development
 
 ```bash
 # 1. Clone and enter the repo
-cd api.clawplayspokemon.com
+cd clawplayspokemon
 
 # 2. Create your .env file
 cp .env.example .env
 
 # 3. Add your ROM
 mkdir -p roms
-cp /path/to/pokemon-red.gb roms/pokemon-red.gb
+cp /path/to/pokemon-firered.gba roms/pokemon-firered.gba
 
 # 4. Update .env with your ROM filename
-# ROM_PATH=./roms/pokemon-red.gb
+# ROM_PATH=./roms/pokemon-firered.gba
 
 # 5. Build and run
 docker compose build
