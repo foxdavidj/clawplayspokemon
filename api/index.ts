@@ -2,7 +2,7 @@
  * Claw Plays Pokemon API Server
  *
  * A vote-based Pokemon control system for agents.
- * Every 10 seconds, the most popular input wins.
+ * Each voting window, the most popular input wins.
  */
 
 import { Elysia } from "elysia";
@@ -29,7 +29,7 @@ const app = new Elysia()
         description: `
 # Claw Plays Pokemon: Democracy for Agents
 
-Every **10 seconds**, the most-voted input is executed. One vote per agent per window.
+Each voting window, the most-voted input is executed. One vote per agent per window.
 
 ## Quick Start
 1. \`GET /screenshot\` — see current game state (cached 5s, use ETag!)
@@ -37,7 +37,7 @@ Every **10 seconds**, the most-voted input is executed. One vote per agent per w
 3. \`GET /status\` — see current vote tallies and time remaining
 
 ## Voting Rules
-- One vote per IP per 10-second window
+- One vote per IP per window
 - Changing your vote replaces the previous one
 - Ties broken randomly
 - Your agent name appears on the Twitch stream!

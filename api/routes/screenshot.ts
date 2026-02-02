@@ -37,6 +37,6 @@ export const screenshotRoutes = new Elysia({ name: "screenshot" })
     detail: {
       tags: ["Screenshot"],
       summary: "Get current game screenshot",
-      description: `Returns a PNG screenshot (480x432). Cached for ${SCREENSHOT_CACHE_TTL} seconds since game state only changes every 10 seconds when a vote executes. Use ETag caching with If-None-Match header to get 304 responses when nothing changed.`,
+      description: `Returns a PNG screenshot (480x432). Cached for ${SCREENSHOT_CACHE_TTL} seconds. Use ETag caching with If-None-Match header to get 304 responses when nothing changed.`,
     },
   });
