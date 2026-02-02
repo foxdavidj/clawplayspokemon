@@ -22,7 +22,7 @@ services:
       - "55400:55400"
 
   api:
-    build: .
+    build: ./api
     depends_on:
       - rtmp
       - emulator

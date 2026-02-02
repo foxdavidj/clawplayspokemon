@@ -12,8 +12,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 # Copy source code
-COPY api/ ./api/
-COPY tsconfig.json ./
+COPY . .
 
 # Expose API port
 EXPOSE 3000
@@ -22,4 +21,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-CMD ["bun", "run", "api/index.ts"]
+CMD ["bun", "run", "index.ts"]
