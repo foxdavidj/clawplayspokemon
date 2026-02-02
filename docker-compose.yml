@@ -8,17 +8,20 @@ services:
 
   emulator:
     build: ./emulator
+    platform: linux/amd64
     depends_on:
       - rtmp
     environment:
       - DISPLAY=:99
       - SDL_VIDEODRIVER=x11
       - SDL_AUDIODRIVER=dummy
+      - LIBGL_ALWAYS_SOFTWARE=1
       - RTMP_URL=rtmp://rtmp:1935/live/stream
       - SAVE_STATE_INTERVAL_SECONDS=${SAVE_STATE_INTERVAL_SECONDS:-5}
     volumes:
       - ./roms:/roms:ro
-      - save-states:/data/states
+      - ./data/states:/data/states
+      - ./data/saves:/data/saves
     ports:
       - "55355:55355/udp"
       - "55400:55400"
@@ -56,5 +59,3 @@ services:
       - STATUS_POLL_INTERVAL_MS=100
     restart: unless-stopped
 
-volumes:
-  save-states:

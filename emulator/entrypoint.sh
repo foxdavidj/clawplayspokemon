@@ -85,10 +85,14 @@ echo "Starting periodic save state (every ${SAVE_INTERVAL}s)..."
 (
     sleep 10  # Give RetroArch time to boot and load ROM
     while true; do
-        echo -n "SAVE_STATE" | nc -u -w0 localhost 55355 2>/dev/null || true
+        echo -n "SAVE_STATE" | nc -u -w1 localhost 55355 2>/dev/null || true
         sleep $SAVE_INTERVAL
     done
 ) &
+
+# --- Set up software rendering ---
+export LIBGL_ALWAYS_SOFTWARE=1
+export DISPLAY=:99
 
 # --- Launch RetroArch ---
 echo "Launching RetroArch..."
