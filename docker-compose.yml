@@ -5,6 +5,8 @@ services:
       - "1935:1935"
       - "8554:8554"
       - "8888:8888"
+    environment:
+      - MTX_WRITEQUEUESIZE=2048
 
   emulator:
     build: ./emulator
@@ -14,10 +16,10 @@ services:
     environment:
       - DISPLAY=:99
       - SDL_VIDEODRIVER=x11
-      - SDL_AUDIODRIVER=dummy
+      - SDL_AUDIODRIVER=pulseaudio
       - LIBGL_ALWAYS_SOFTWARE=1
       - RTMP_URL=rtmp://rtmp:1935/live/stream
-      - SAVE_STATE_INTERVAL_SECONDS=${SAVE_STATE_INTERVAL_SECONDS:-5}
+      - SAVE_STATE_INTERVAL_SECONDS=${SAVE_STATE_INTERVAL_SECONDS:-30}
     volumes:
       - ./roms:/roms:ro
       - ./data/states:/data/states

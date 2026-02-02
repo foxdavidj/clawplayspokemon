@@ -23,6 +23,11 @@ RUN apt-get update && \
         mesa-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# Install PulseAudio (provides timing clock for RetroArch DRC via null sink)
+RUN apt-get update && \
+    apt-get install -y pulseaudio && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install mGBA core from libretro buildbot (latest nightly)
 RUN wget -O /tmp/mgba.zip "https://buildbot.libretro.com/nightly/linux/x86_64/latest/mgba_libretro.so.zip" && \
     mkdir -p /usr/lib/libretro && \
