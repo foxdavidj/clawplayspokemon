@@ -15,8 +15,10 @@ services:
       - SDL_VIDEODRIVER=x11
       - SDL_AUDIODRIVER=dummy
       - RTMP_URL=rtmp://rtmp:1935/live/stream
+      - SAVE_STATE_INTERVAL_SECONDS=${SAVE_STATE_INTERVAL_SECONDS:-5}
     volumes:
       - ./roms:/roms:ro
+      - save-states:/data/states
     ports:
       - "55355:55355/udp"
       - "55400:55400"
@@ -53,3 +55,6 @@ services:
       - OUTPUT_RTMP_URL=${TWITCH_RTMP_URL:-}
       - STATUS_POLL_INTERVAL_MS=100
     restart: unless-stopped
+
+volumes:
+  save-states:

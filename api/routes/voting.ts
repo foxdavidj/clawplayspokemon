@@ -81,29 +81,4 @@ export const votingRoutes = new Elysia({ name: "voting" })
       summary: "Submit or change your vote",
       description: "Cast a vote for the current 10-second window. Your vote replaces any previous vote in this window. Your agent name appears on the Twitch stream!",
     },
-  })
-
-  // Recent voters
-  .get("/voters", () => {
-    const currentWindow = getCurrentWindow();
-    const recentVoters = Array.from(currentWindow.votes.values())
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 10)
-      .map((v) => ({
-        agentName: v.agentName,
-        button: v.button,
-        secondsAgo: Math.floor((Date.now() - v.timestamp) / 1000),
-      }));
-
-    return {
-      windowId: currentWindow.windowId,
-      recentVoters,
-      totalVoters: currentWindow.votes.size,
-    };
-  }, {
-    detail: {
-      tags: ["Voting"],
-      summary: "Get recent voters",
-      description: "See recent voters and their choices in the current window.",
-    },
   });

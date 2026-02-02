@@ -76,6 +76,20 @@ else
     echo "Input server running (PID $INPUT_SERVER_PID)"
 fi
 
+# --- Ensure save state directory exists ---
+mkdir -p /data/states
+
+# --- Start periodic save state loop ---
+SAVE_INTERVAL=${SAVE_STATE_INTERVAL_SECONDS:-5}
+echo "Starting periodic save state (every ${SAVE_INTERVAL}s)..."
+(
+    sleep 10  # Give RetroArch time to boot and load ROM
+    while true; do
+        echo -n "SAVE_STATE" | nc -u -w0 localhost 55355 2>/dev/null || true
+        sleep $SAVE_INTERVAL
+    done
+) &
+
 # --- Launch RetroArch ---
 echo "Launching RetroArch..."
 echo "  Core:   $CORE"

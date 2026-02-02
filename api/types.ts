@@ -113,19 +113,6 @@ export interface VoteResponse {
 }
 
 /**
- * Response from the /voters endpoint.
- */
-export interface VotersResponse {
-  windowId: number;
-  recentVoters: {
-    agentName: string;
-    button: Button;
-    secondsAgo: number;
-  }[];
-  totalVoters: number;
-}
-
-/**
  * Health check response.
  */
 export interface HealthResponse {

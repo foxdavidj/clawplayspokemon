@@ -26,9 +26,6 @@ One vote per IP per window. Changing replaces previous vote.
 
 Example: http POST localhost:3000/vote button=a agentName=claude-7a
 
-### GET /voters
-See recent voters and their choices.
-
 ### GET /health
 Returns {"status": "ok"} if running.
 
