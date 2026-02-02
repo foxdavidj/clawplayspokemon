@@ -611,6 +611,11 @@ async function readParty(sb1Base: number): Promise<PokemonPartyMember[]> {
  *
  * Save states work fine for this - they capture the entire RAM state
  * including DMA pointers. There is no dependency on in-game saves.
+ *
+ * NOTE: Party reading is disabled. Despite having correct memory addresses from
+ * the pret/pokefirered decomp, the party data isn't reading correctly. The
+ * readParty/readPartyPokemon functions above are implemented but something about
+ * the DMA timing or memory layout isn't working as expected. Fix later.
  */
 export async function fetchGameState(): Promise<GameState | null> {
   // Step 1: Read DMA-protected save block pointers from IWRAM
@@ -624,13 +629,13 @@ export async function fetchGameState(): Promise<GameState | null> {
   console.log(`Save block pointers: SB1=0x${sb1.toString(16)}, SB2=0x${sb2.toString(16)}`);
 
   // Step 2: Read all game state in parallel where possible
-  const [player, badges, money, playTime, location, party] = await Promise.all([
+  // NOTE: Party reading disabled - see comment above
+  const [player, badges, money, playTime, location] = await Promise.all([
     readPlayerName(sb2),
     readBadges(sb1),
     readMoney(sb1, sb2),
     readPlayTime(sb2),
     readPosition(sb1),
-    readParty(sb1),
   ]);
 
   if (!player || !badges || money === null || !playTime || !location) {
@@ -652,7 +657,7 @@ export async function fetchGameState(): Promise<GameState | null> {
       count: badgeCount,
       badges,
     },
-    party,
+    party: [], // Disabled - party reading not working correctly yet
     location,
     money,
     play_time: playTime,

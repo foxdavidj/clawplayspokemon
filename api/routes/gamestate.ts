@@ -63,6 +63,6 @@ export const gameStateRoutes = new Elysia({ name: "status" })
     detail: {
       tags: ["Status"],
       summary: "Get game state and voting status",
-      description: "Returns the current Pokemon game state (party, badges, location) and voting window information including recent voters.",
+      description: "Returns the current Pokemon game state (badges, location, money) and voting window information including recent voters.",
     },
   });
