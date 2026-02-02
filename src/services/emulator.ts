@@ -1,9 +1,9 @@
 /**
- * UDP client for communication with the RetroArch emulator.
+ * Client for communication with the RetroArch emulator.
  *
  * Provides functions to:
  * - Read memory via UDP port 55355
- * - Send button inputs via UDP port 55400
+ * - Send button inputs via TCP port 55400 (xdotool-based input server)
  */
 
 import { createSocket, type Socket } from "dgram";
@@ -58,19 +58,35 @@ resolveEmulatorHost().then((ip) => {
   emulatorIP = ip;
 });
 
-// Button bitmask values for RetroArch network gamepad
-const BUTTON_BITMASKS: Record<Button, number> = {
-  a: 1,
-  b: 2,
-  select: 4,
-  start: 8,
-  right: 16,
-  left: 32,
-  up: 64,
-  down: 128,
-  r: 256,
-  l: 512,
+// Button name mapping (API uses lowercase, input server expects uppercase)
+const BUTTON_NAMES: Record<Button, string> = {
+  a: "A",
+  b: "B",
+  select: "SELECT",
+  start: "START",
+  right: "RIGHT",
+  left: "LEFT",
+  up: "UP",
+  down: "DOWN",
+  r: "R",
+  l: "L",
 };
+
+/**
+ * Send a command to the input server via TCP.
+ * Uses nc (netcat) because Bun's net module has quirks.
+ */
+async function sendInputCommand(command: string): Promise<void> {
+  const host = EMULATOR_HOST;
+  const port = EMULATOR_INPUT_PORT;
+
+  try {
+    await Bun.$`echo ${command} | nc -w1 ${host} ${port}`.quiet();
+  } catch (err) {
+    // nc returns non-zero on timeout, but command may have been sent
+    console.error("nc command failed (may be timeout):", err);
+  }
+}
 
 /**
  * Send a UDP message and wait for a response with timeout.
@@ -117,29 +133,6 @@ async function sendUdpWithResponse(
         clearTimeout(timeout);
         cleanup();
         resolve(null);
-      }
-    });
-  });
-}
-
-/**
- * Send a UDP message without waiting for response (fire-and-forget).
- */
-async function sendUdpNoResponse(
-  port: number,
-  message: string
-): Promise<void> {
-  const host = await getEmulatorIP();
-
-  return new Promise((resolve, reject) => {
-    const socket: Socket = createSocket("udp4");
-
-    socket.send(message, port, host, (err) => {
-      socket.close();
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
       }
     });
   });
@@ -210,36 +203,45 @@ export async function readMemory(
 }
 
 /**
- * Press a button on the emulator and release it.
+ * Press a button on the emulator (tap and release).
  *
  * @param button - Button to press
- * @param durationMs - How long to hold the button (default 100ms)
  */
-export async function pressButton(
-  button: Button,
-  durationMs: number = 100
-): Promise<void> {
-  const bitmask = BUTTON_BITMASKS[button];
-  if (bitmask === undefined) {
+export async function pressButton(button: Button): Promise<void> {
+  const buttonName = BUTTON_NAMES[button];
+  if (!buttonName) {
     console.error(`Invalid button: ${button}`);
     return;
   }
 
   try {
-    console.log(`Sending button press to RetroArch: ${button}`);
-
-    // Press button
-    await sendUdpNoResponse(EMULATOR_INPUT_PORT, String(bitmask));
-
-    // Hold for duration
-    await new Promise((r) => setTimeout(r, durationMs));
-
-    // Release button
-    await sendUdpNoResponse(EMULATOR_INPUT_PORT, "0");
-
+    console.log(`Sending button press: ${button}`);
+    await sendInputCommand(`PRESS ${buttonName}`);
     console.log(`Button pressed: ${button}`);
   } catch (err) {
     console.error(`Failed to press button ${button}:`, err);
+  }
+}
+
+/**
+ * Hold a button on the emulator for a specified duration.
+ *
+ * @param button - Button to hold
+ * @param durationMs - How long to hold the button (default 200ms)
+ */
+export async function holdButton(button: Button, durationMs: number = 200): Promise<void> {
+  const buttonName = BUTTON_NAMES[button];
+  if (!buttonName) {
+    console.error(`Invalid button: ${button}`);
+    return;
+  }
+
+  try {
+    console.log(`Holding button: ${button} for ${durationMs}ms`);
+    await sendInputCommand(`HOLD ${buttonName} ${durationMs}`);
+    console.log(`Button held: ${button}`);
+  } catch (err) {
+    console.error(`Failed to hold button ${button}:`, err);
   }
 }
 

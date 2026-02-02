@@ -2,8 +2,8 @@ FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-# Install ffmpeg for screenshot capture from RTMP stream
-RUN apk add --no-cache ffmpeg
+# Install ffmpeg for screenshot capture, netcat for input commands
+RUN apk add --no-cache ffmpeg netcat-openbsd
 
 # Copy package files
 COPY package.json bun.lock ./

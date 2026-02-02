@@ -65,6 +65,17 @@ echo ""
 eval $(dbus-launch --sh-syntax)
 echo "D-Bus session started"
 
+# --- Start input server (xdotool-based button input via TCP) ---
+echo "Starting input server on TCP port ${INPUT_PORT:-55400}..."
+/input_server.sh &
+INPUT_SERVER_PID=$!
+sleep 1
+if ! kill -0 $INPUT_SERVER_PID 2>/dev/null; then
+    echo "WARNING: Input server may have failed to start"
+else
+    echo "Input server running (PID $INPUT_SERVER_PID)"
+fi
+
 # --- Launch RetroArch ---
 echo "Launching RetroArch..."
 echo "  Core:   $CORE"

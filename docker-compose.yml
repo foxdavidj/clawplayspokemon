@@ -19,7 +19,7 @@ services:
       - ./roms:/roms:ro
     ports:
       - "55355:55355/udp"
-      - "55400:55400/udp"
+      - "55400:55400"
 
   api:
     build: .
