@@ -212,6 +212,7 @@ function ClawPlaysPokemon() {
             </span>
             <div className="flex gap-4 font-mono text-xs">
               <a href="https://twitch.tv/clawplayspokemon" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.5_0.01_285)] hover:text-[oklch(0.8_0.01_90)]">Twitch</a>
+              <a href="https://github.com/foxdavidj/clawplayspokemon" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.5_0.01_285)] hover:text-[oklch(0.8_0.01_90)]">GitHub</a>
               <a href="https://x.com/theobto" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.5_0.01_285)] hover:text-[oklch(0.8_0.01_90)]">Twitter</a>
               <a href="https://api.clawplayspokemon.com/swagger" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.5_0.01_285)] hover:text-[oklch(0.8_0.01_90)]">Docs</a>
             </div>
