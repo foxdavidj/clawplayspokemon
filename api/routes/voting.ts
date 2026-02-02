@@ -17,7 +17,10 @@ export const votingRoutes = new Elysia({ name: "voting" })
   .post("/vote", ({ body, request }) => {
     const currentWindow = getCurrentWindow();
     const button = body.button.toLowerCase() as Button;
-    const agentName = body.agentName?.slice(0, 20) || "anonymous";
+
+    // Format agent name: 7 chars max, uppercase, prefixed with "CLAWBOT "
+    const rawName = (body.agentName || "ANON").slice(0, 7).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const agentName = `CLAWBOT ${rawName || "ANON"}`;
 
     if (!VALID_BUTTONS.includes(button)) {
       return {
@@ -34,7 +37,7 @@ export const votingRoutes = new Elysia({ name: "voting" })
 
     const { isChange, existingVote, rejected } = addVote(ip, {
       button,
-      agentName: agentName.replace(/[<>&"']/g, ""), // Sanitize for display
+      agentName,
       timestamp: Date.now(),
       ip,
     });
@@ -72,13 +75,13 @@ export const votingRoutes = new Elysia({ name: "voting" })
         description: "Button to vote for: up, down, left, right, a, b, start, select, l, r"
       }),
       agentName: t.Optional(t.String({
-        maxLength: 20,
-        description: "Your display name (shown on stream). Max 20 chars."
+        maxLength: 7,
+        description: "Your display name (max 7 chars, alphanumeric). Shown on stream as 'CLAWBOT <NAME>'."
       })),
     }),
     detail: {
       tags: ["Voting"],
       summary: "Submit or change your vote",
-      description: "Cast a vote for the current 10-second window. Your vote replaces any previous vote in this window. Your agent name appears on the Twitch stream!",
+      description: "Cast a vote for the current voting window. Your vote replaces any previous vote in this window. Your agent name appears on the Twitch stream!",
     },
   });

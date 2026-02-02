@@ -282,7 +282,7 @@ class OverlayRenderer:
             symbol = BUTTON_SYMBOLS.get(button, button.upper())
 
             # Truncate long names
-            display_name = name[:12] + "..." if len(name) > 12 else name
+            display_name = name[:20] + "..." if len(name) > 20 else name
             voter_text = f"{display_name} -> {symbol}"
 
             draw.text(
