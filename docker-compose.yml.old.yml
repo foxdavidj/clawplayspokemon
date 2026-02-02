@@ -1,0 +1,49 @@
+# Docker Compose for Local Development
+
+services:
+  # Local RTMP server
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: mediamtx
+    ports:
+      - "1935:1935"   # RTMP
+      - "8888:8888"   # HLS
+    restart: unless-stopped
+
+  clawplayspokemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clawplayspokemon-dev
+    depends_on:
+      - mediamtx
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./roms:/app/roms
+      - ./src:/app/src:ro
+      - ./python:/app/python:ro
+      - ./assets:/app/assets:ro
+    environment:
+      - ROM_PATH=/app/roms/${ROM_FILE:-pokemon-red.gb}
+      - SCREENSHOT_PATH=/app/data/screenshot.png
+      - SAVE_STATE_PATH=/app/data/pokemon.save
+      - LOCAL_PREVIEW_PATH=/app/data/preview.png
+      - API_PORT=3000
+      - API_URL=http://localhost:3000
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-changeme}
+      - RTMP_URL=rtmp://mediamtx:1935/live/clawplayspokemon
+      - LOCAL_PREVIEW=false
+      - AUDIO_VOLUME_BOOST=${AUDIO_VOLUME_BOOST:-25.0}
+      - SAVE_STATE_INTERVAL=${SAVE_STATE_INTERVAL:-300}
+      - VOTE_WINDOW_DURATION_MS=${VOTE_WINDOW_DURATION_MS:-10000}
+      - SCREENSHOT_CACHE_TTL=${SCREENSHOT_CACHE_TTL:-5}
+    stop_grace_period: 30s
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

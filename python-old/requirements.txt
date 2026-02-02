@@ -1,0 +1,11 @@
+# PyBoy emulator
+pyboy>=2.0.0
+
+# Image processing for compositor
+Pillow>=10.0.0
+
+# Async HTTP client for API polling
+aiohttp>=3.9.0
+
+# Environment variable loading (Bun auto-loads, Python needs this)
+python-dotenv>=1.0.0
