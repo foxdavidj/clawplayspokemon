@@ -47,8 +47,6 @@ export interface VoteTally {
   count: number;
   /** Percentage of total votes */
   percentage: number;
-  /** List of agent names who voted for this button */
-  voters: string[];
 }
 
 /**
