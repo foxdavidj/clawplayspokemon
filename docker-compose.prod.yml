@@ -2,6 +2,8 @@ services:
   rtmp:
     image: bluenviron/mediamtx:latest
     restart: unless-stopped
+    environment:
+      - MTX_WRITEQUEUESIZE=2048
 
   emulator:
     image: ghcr.io/foxdavidj/clawplayspokemon/emulator:latest
@@ -12,10 +14,10 @@ services:
     environment:
       - DISPLAY=:99
       - SDL_VIDEODRIVER=x11
-      - SDL_AUDIODRIVER=dummy
+      - SDL_AUDIODRIVER=pulseaudio
       - LIBGL_ALWAYS_SOFTWARE=1
       - RTMP_URL=rtmp://rtmp:1935/live/stream
-      - SAVE_STATE_INTERVAL_SECONDS=${SAVE_STATE_INTERVAL_SECONDS:-5}
+      - SAVE_STATE_INTERVAL_SECONDS=${SAVE_STATE_INTERVAL_SECONDS:-30}
     volumes:
       - ./roms:/roms:ro
       - ./data/states:/data/states

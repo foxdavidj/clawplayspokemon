@@ -65,6 +65,13 @@ echo ""
 eval $(dbus-launch --sh-syntax)
 echo "D-Bus session started"
 
+# --- Start PulseAudio with null sink (provides timing clock for RetroArch DRC) ---
+echo "Starting PulseAudio with null sink..."
+pulseaudio --start --exit-idle-time=-1 --daemonize
+pactl load-module module-null-sink sink_name=game_audio sink_properties=device.description="Game_Audio"
+export PULSE_SINK=game_audio
+echo "PulseAudio running with null sink"
+
 # --- Start input server (xdotool-based button input via TCP) ---
 echo "Starting input server on TCP port ${INPUT_PORT:-55400}..."
 /input_server.sh &

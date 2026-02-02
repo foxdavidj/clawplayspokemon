@@ -13,7 +13,6 @@ Architecture:
     [API /status] --> [This script] --> [/tmp/overlay_pipe]
 """
 
-import io
 import os
 import signal
 import subprocess
@@ -412,10 +411,8 @@ class OverlayPipeWriter:
                     status = self.api_client.get_status()
                     overlay = self.renderer.render(status)
 
-                    # Write as PNG to pipe
-                    buf = io.BytesIO()
-                    overlay.save(buf, format="PNG")
-                    pipe.write(buf.getvalue())
+                    # Write raw RGBA bytes to pipe (faster than PNG encode/decode)
+                    pipe.write(overlay.tobytes())
                     pipe.flush()
 
                     # Sleep to maintain framerate
@@ -486,36 +483,41 @@ class FFmpegPipeline:
         # 4. Overlay the sidebar on top
         bg_color = f"0x{Colors.BG[0]:02x}{Colors.BG[1]:02x}{Colors.BG[2]:02x}"
         filter_complex = (
-            f"[1:v]format=rgba,setpts=PTS-STARTPTS[ovl];"  # Reset PTS to avoid buffering
+            f"[1:v]setpts=PTS-STARTPTS[ovl];"  # Reset PTS to avoid buffering (input is already RGBA)
             f"[0:v]scale={config.game_width}:{config.game_height}:flags=neighbor[game];"
             f"[game]pad={config.output_width}:{config.output_height}:0:{config.game_y}:color={bg_color}[padded];"
-            f"[padded][ovl]overlay=0:0:format=auto:shortest=1:eof_action=repeat[out]"  # shortest=1 forces sync
+            f"[padded][ovl]overlay=0:0:format=auto:eof_action=repeat[out]"  # eof_action=repeat freezes sidebar on hiccup instead of killing stream
         )
 
         cmd = [
             "ffmpeg", "-y",
             # Input 0: RTMP stream from emulator
-            "-fflags", "+genpts+nobuffer",
-            "-flags", "low_delay",
+            # thread_queue_size decouples RTMP reads from filter graph to prevent "slow reader"
+            "-thread_queue_size", "1024",
+            "-fflags", "+genpts",
+            "-analyzeduration", "1000000",
+            "-probesize", "1000000",
+            "-rtbufsize", "3M",
+            "-max_delay", "500000",
             "-i", config.input_rtmp_url,
-            # Input 1: Overlay PNG frames from named pipe
-            # CRITICAL: nobuffer flags to prevent overlay lag
-            "-fflags", "+nobuffer",
-            "-flags", "low_delay",
-            "-f", "image2pipe",
+            # Input 1: Overlay raw RGBA frames from named pipe
+            "-f", "rawvideo",
+            "-pixel_format", "rgba",
+            "-video_size", f"{config.output_width}x{config.output_height}",
             "-framerate", str(config.overlay_fps),
-            "-thread_queue_size", "2",  # Minimal queue to reduce buffering
+            "-thread_queue_size", "32",
             "-i", config.overlay_pipe_path,
             # Filter complex
             "-filter_complex", filter_complex,
             "-map", "[out]",
             "-map", "0:a",
             # Video encoding
+            "-r", "30",  # Output at 30fps (halves encoding workload, GBA pixel art looks identical)
             "-c:v", "libx264",
             "-preset", "fast",
             "-tune", "zerolatency",
             "-pix_fmt", "yuv420p",
-            "-g", "120",
+            "-g", "60",  # 30fps * 2s = 60 (Twitch requires keyframes every 2s)
             "-b:v", "3000k",
             # Audio encoding
             "-c:a", "aac",
